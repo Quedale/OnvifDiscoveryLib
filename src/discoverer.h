@@ -11,28 +11,8 @@
 #include <sys/socket.h> 
 #include <arpa/inet.h> 
 #include <netinet/in.h>
-// #include "soap_parser.h"
 #include "onvif_discovery.h"
 
-
-struct DiscoverThreadInput {
-    struct UdpDiscoverer * server;
-    void * widget;
-    void * data;
-    void * callback;
-    void * done_callback;
-};
-
-struct invoke_context
-{
-  GThreadFunc func;
-  gpointer data;
-  GMutex lock;
-  GCond cond;
-  gboolean fired;
-
-  gpointer res;
-};
 
 struct UdpDiscoverer {
     struct sockaddr_in     *servaddr; 
@@ -48,9 +28,11 @@ struct EventDispatch {
     gboolean fired;
 };
 
-
-struct UdpDiscoverer UdpDiscoverer__create(void * func, void * done_func); 
-void UdpDiscoverer__destroy(struct UdpDiscoverer* self); 
-void * UdpDiscoverer__start(struct UdpDiscoverer* self, void * widget, void * player);
+__attribute__ ((visibility("default"))) 
+extern struct UdpDiscoverer UdpDiscoverer__create(void * func, void * done_func); 
+__attribute__ ((visibility("default"))) 
+extern void UdpDiscoverer__destroy(struct UdpDiscoverer* self); 
+__attribute__ ((visibility("default"))) 
+extern void UdpDiscoverer__start(struct UdpDiscoverer* self, void * user_data);
 
 #endif

@@ -4,21 +4,6 @@
 
 #include "onvif_discovery.h"
 
-const char *FromAddress    = "http://localhost:11000";
-const char *ToAddress      = "http://localhost:11001";
-const char *ReplyToAddress = "http://localhost:11002";
-const char *FaultToAddress = "http://localhost:11003";
-const char *RequestAction  = "urn:wsademo/wsademoPort/wsademo";
-
-
-struct DiscoverThreadInput {
-    struct UdpDiscoverer * server;
-    void * widget;
-    void * data;
-    void * callback;
-    void * done_callback;
-};
-
 struct MessageEntry {
   const char * id;
   int (*cc)(void * );
@@ -33,9 +18,8 @@ struct MessageMapping {
 
 int init;
 struct MessageMapping * MAPPINGS;
-// char LAST_MESSAGE[] = "urn:uuid:4c834685-1797-4e2a-8402-6a0c226dcbff";
 
-//Place holder until I replace the legacy discoverer
+//Place holder for successful client compile
 void wsdd_event_Hello(struct soap *soap, unsigned int InstanceId, const char *SequenceId, unsigned int MessageNumber, const char *MessageID, const char *RelatesTo, const char *EndpointReference, const char *Types, const char *Scopes, const char *MatchBy, const char *XAddrs, unsigned int MetadataVersion)
 { printf("wsdd_event_Hello\n"); }
 
@@ -44,7 +28,7 @@ void wsdd_event_Bye(struct soap *soap, unsigned int InstanceId, const char *Sequ
 
 soap_wsdd_mode wsdd_event_Probe(struct soap *soap, const char *MessageID, const char *ReplyTo, const char *Types, const char *Scopes, const char *MatchBy, struct wsdd__ProbeMatchesType *ProbeMatches)
 {
-    printf("wsdd_event_Probe\n");
+  printf("wsdd_event_Probe\n");
   return SOAP_WSDD_ADHOC;
 }
 
@@ -90,26 +74,24 @@ void wsdd_event_ProbeMatches(struct soap *soap, unsigned int InstanceId, const c
 
   DiscoveredServer * server =  (DiscoveredServer *) malloc(sizeof(DiscoveredServer));
   server->match_count = ProbeMatches->__sizeProbeMatch;
-  server->matches = (struct ProbMatch *) malloc (sizeof (struct ProbMatch*) * server->match_count);
-  server->msg_uuid = MessageID;
-  server->relate_uuid = RelatesTo;
+  server->matches = (struct ProbMatch *) malloc (sizeof (struct ProbMatch) * server->match_count);
+  server->msg_uuid = (char *) MessageID;
+  server->relate_uuid = (char *) RelatesTo;
 
-  printf("getting index\n");
   int index = MessageMapping__get_index_of_msg(MAPPINGS,RelatesTo);
   if(index < 0){
     printf("error index \n");
     return;
   }
 
-  printf("getting entry...\n");
   struct MessageEntry * entry = MAPPINGS->list[index];
-  struct DiscoverThreadInput * in = (struct DiscoverThreadInput *) entry->data;
+//   struct DiscoverThreadInput * in = (struct DiscoverThreadInput *) entry->data;
   
-  printf("wsdd_event_ProbeMatches -- %p\n", (void *)in->data);
-  printf("wsdd_event_ProbeMatches\n"); 
-  printf("LAST_MESSAGE : '%s'\n",entry->id);
-  printf("MessageID : %s\n",MessageID);
-  printf("RelatesTo : '%s'\n",RelatesTo);
+//   printf("wsdd_event_ProbeMatches -- %p\n", (void *)in->data);
+  // printf("wsdd_event_ProbeMatches\n"); 
+  // printf("LAST_MESSAGE : '%s'\n",entry->id);
+  // printf("MessageID : %s\n",MessageID);
+  // printf("RelatesTo : '%s'\n",RelatesTo);
   // printf("SequenceId : %s\n",SequenceId);
   int i;
   for (i=0;i<ProbeMatches->__sizeProbeMatch;i++){
@@ -119,56 +101,57 @@ void wsdd_event_ProbeMatches(struct soap *soap, unsigned int InstanceId, const c
     struct wsdd__ProbeMatchType match = ProbeMatches->ProbeMatch[i];
     // ret_match.prob_uuid = match.
     // ret_match.addr_uuid = match.MessageID
-    ret_match.prob_uuid = RelatesTo;
-    ret_match.addr_uuid = match.wsa__EndpointReference.Address;
-    ret_match.addr = match.XAddrs;
-    ret_match.types = match.Types;
+
+    ret_match.prob_uuid = malloc(strlen(RelatesTo) + 1);
+    strcpy(ret_match.prob_uuid,(char *) RelatesTo);
+
+    ret_match.addr_uuid = malloc(strlen(match.wsa__EndpointReference.Address) + 1);
+    strcpy(ret_match.addr_uuid,match.wsa__EndpointReference.Address);
+
+    ret_match.addr = malloc(strlen(match.XAddrs) + 1);
+    strcpy(ret_match.addr,match.XAddrs);
+
+    ret_match.types = malloc(strlen(match.Types) + 1);
+    strcpy(ret_match.types,match.Types);
+
     // ret_match.service = match.wsa__EndpointReference.ServiceName->PortName;
-    ret_match.version = match.MetadataVersion;
+    // ret_match.version = match.MetadataVersion;
+
     ret_match.scopes = malloc (0);
     ret_match.scope_count = 0;
-    printf("ret_match.prob_uuid : %s\n",ret_match.prob_uuid);
-    printf("ret_match.addr_uuid : %s\n",ret_match.addr_uuid);
-    printf("ret_match.addr : %s\n",ret_match.addr);
-    printf("ret_match.types : %s\n",ret_match.types);
-    printf("ret_match.service : %s\n",ret_match.service);
-    printf("ret_match.version : %d\n",ret_match.version);
-
-    printf("match.Scopes->MatchBy : %s\n",match.Scopes->MatchBy);
-    printf("match.Scopes->__item : %s\n",match.Scopes->__item);
+    // printf("ret_match.prob_uuid : %s\n",ret_match.prob_uuid);
+    // printf("ret_match.addr_uuid : %s\n",ret_match.addr_uuid);
+    // printf("ret_match.addr : %s\n",ret_match.addr);
+    // printf("ret_match.types : %s\n",ret_match.types);
+    // printf("ret_match.service : %s\n",ret_match.service);
+    // printf("ret_match.version : %d\n",ret_match.version);
+    // printf("match.Scopes->MatchBy : %s\n",match.Scopes->MatchBy);
+    // printf("match.Scopes->__item : %s\n",match.Scopes->__item);
     
-    char *p = strtok(match.Scopes->__item,"\n");
     char *tmp;
-    char * copy;
+    ret_match.scope_count = 0;
 
-    while(p != NULL){
-      
+    char *p = strtok ((char *)match.Scopes->__item, "\n");
+    while (p != NULL){
       tmp=trimwhitespace(p);
-
       if(tmp[0] == '\0'){
         p = strtok(NULL,"\n");
         continue;
       }
-
-      ret_match.scopes = realloc (ret_match.scopes,sizeof (char*) * (ret_match.scope_count+1));
-
-      //Copy scopy pointer memoery
-      copy = malloc(strlen(tmp) + 1); 
-      strcpy(copy,tmp);
-      ret_match.scopes[ret_match.scope_count] = copy;
-
-      p = strtok(NULL,"\n");
       ret_match.scope_count++;
-    };
+      ret_match.scopes = realloc (ret_match.scopes,sizeof (char *) * ret_match.scope_count);
+      ret_match.scopes[ret_match.scope_count-1]= malloc(strlen(tmp)+1);
+      strcpy(ret_match.scopes[ret_match.scope_count-1],tmp);
+      p = strtok (NULL, "\n");
+    }
+
     server->matches[i] = ret_match;
 
   }
   
-
   DiscoveryEvent ret_event;
   ret_event.data = entry->data;
   ret_event.server = server;
-
   entry->cc (&ret_event);
 }
 
@@ -314,60 +297,54 @@ void urldecode2(char *dst, const char *src)
 }
 
 char * onvif_extract_scope(char * key, struct ProbMatch * match){
-  printf("onvif_extract_scope\n");
-    int a;
-    const char delimeter[2] = "/";
-    const char * onvif_key_del = "onvif://www.onvif.org/";
-    char* key_w_del;
-    char* ret_val;
-    int alloc = 0;
-    //Concat key with delimeter
-    key_w_del = malloc(strlen(key)+1+strlen(delimeter));
-    strcpy(key_w_del, key);
-    strcat(key_w_del, delimeter);
-    
-    // printf("match->scope_count %i\n",match->scope_count);
-    for (a = 0 ; a < match->scope_count ; ++a) {
-        //Check for onvif key prefix
-        if(startsWith(onvif_key_del, match->scopes[a])){
-           
-          //  printf("malloc 1\n");
-          //  printf("match->scopes[a] 1 '%s'\n",match->scopes[a]);
-          //  printf("onvif_key_del 1 '%s'\n",onvif_key_del);
-          //  printf("maloc size : %i\n",(strlen(match->scopes[a])-strlen(onvif_key_del) + 1));
-            //Drop onvif scope prefix
-            char * subs = malloc(strlen(match->scopes[a])-strlen(onvif_key_del) + 1);
-            substring(match->scopes[a],subs,strlen(onvif_key_del)+1,strlen(match->scopes[a])-strlen(onvif_key_del)+1);
-            
-            if(startsWith(key_w_del,subs)){ // Found Scope
-                //Extract value
-                char * sval = malloc(strlen(match->scopes[a])-strlen(onvif_key_del) + 1);
-                substring(subs,sval,strlen(key_w_del)+1,strlen(subs)-strlen(key_w_del)+1);
+  int a;
+  const char delimeter[2] = "/";
+  const char * onvif_key_del = "onvif://www.onvif.org/";
+  char* key_w_del;
+  char* ret_val;
+  int alloc = 0;
+  //Concat key with delimeter
+  key_w_del = malloc(strlen(key)+1+strlen(delimeter));
+  strcpy(key_w_del, key);
+  strcat(key_w_del, delimeter);
+  
+  for (a = 0 ; a < match->scope_count ; ++a) {
+    //Check for onvif key prefix
+    if(startsWith(onvif_key_del, match->scopes[a])){
+        
+      //Drop onvif scope prefix
+      char * subs = malloc(strlen(match->scopes[a])-strlen(onvif_key_del) + 1);
+      substring(match->scopes[a],subs,strlen(onvif_key_del)+1,strlen(match->scopes[a])-strlen(onvif_key_del)+1);
+      
+      if(startsWith(key_w_del,subs)){ // Found Scope
+          //Extract value
+          char * sval = malloc(strlen(match->scopes[a])-strlen(onvif_key_del) + 1);
+          substring(subs,sval,strlen(key_w_del)+1,strlen(subs)-strlen(key_w_del)+1);
 
-                //Decode http string (e.g. %20 = whitespace)
-                char *output = malloc(strlen(sval)+1);
-                urldecode2(output, sval);
+          //Decode http string (e.g. %20 = whitespace)
+          char *output = malloc(strlen(sval)+1);
+          urldecode2(output, sval);
 
-                if(!alloc){
-                    ret_val = malloc(strlen(output)+1);
-                    memcpy(ret_val,output,strlen(output)+1);
-                    alloc = 1;
-                } else {
-                    ret_val = realloc(ret_val, strlen(ret_val) + strlen(output) +1);
-                    strcat(ret_val, " ");
-                    strcat(ret_val, output);
-                }
+          if(!alloc){
+            ret_val = malloc(strlen(output)+1);
+            memcpy(ret_val,output,strlen(output)+1);
+            alloc = 1;
+          } else {
+            ret_val = realloc(ret_val, strlen(ret_val) + strlen(output) +1);
+            strcat(ret_val, " ");
+            strcat(ret_val, output);
+          }
 
-                free(output);
-                free(sval);
-            }
-
-            free(subs);
-        } else {//TODO possibly handle 3rd-party scopes
-            printf("\t\tScope : %s\n",match->scopes[a]);
+          free(output);
+          free(sval);
         }
-    }
 
-    free(key_w_del);
-    return ret_val;
+        free(subs);
+    } else {//TODO possibly handle 3rd-party scopes
+        printf("\t\tScope : %s\n",match->scopes[a]);
+    }
+  }
+
+  free(key_w_del);
+  return ret_val;
 }
