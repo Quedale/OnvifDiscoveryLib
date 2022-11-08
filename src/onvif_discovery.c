@@ -78,6 +78,11 @@ void wsdd_event_ProbeMatches(struct soap *soap, unsigned int InstanceId, const c
   server->msg_uuid = (char *) MessageID;
   server->relate_uuid = (char *) RelatesTo;
 
+  // printf("wsdd_event_ProbeMatches\n"); 
+  // printf("MessageID : %s\n",MessageID);
+  // printf("RelatesTo : '%s'\n",RelatesTo);
+  // printf("SequenceId : %s\n",SequenceId);
+
   int index = MessageMapping__get_index_of_msg(MAPPINGS,RelatesTo);
   if(index < 0){
     printf("error index \n");
@@ -85,22 +90,12 @@ void wsdd_event_ProbeMatches(struct soap *soap, unsigned int InstanceId, const c
   }
 
   struct MessageEntry * entry = MAPPINGS->list[index];
-//   struct DiscoverThreadInput * in = (struct DiscoverThreadInput *) entry->data;
-  
-//   printf("wsdd_event_ProbeMatches -- %p\n", (void *)in->data);
-  // printf("wsdd_event_ProbeMatches\n"); 
   // printf("LAST_MESSAGE : '%s'\n",entry->id);
-  // printf("MessageID : %s\n",MessageID);
-  // printf("RelatesTo : '%s'\n",RelatesTo);
-  // printf("SequenceId : %s\n",SequenceId);
   int i;
   for (i=0;i<ProbeMatches->__sizeProbeMatch;i++){
     struct ProbMatch ret_match;
-    // memset (&ret_match, 0, sizeof (ret_match));
 
     struct wsdd__ProbeMatchType match = ProbeMatches->ProbeMatch[i];
-    // ret_match.prob_uuid = match.
-    // ret_match.addr_uuid = match.MessageID
 
     ret_match.prob_uuid = malloc(strlen(RelatesTo) + 1);
     strcpy(ret_match.prob_uuid,(char *) RelatesTo);
@@ -113,9 +108,6 @@ void wsdd_event_ProbeMatches(struct soap *soap, unsigned int InstanceId, const c
 
     ret_match.types = malloc(strlen(match.Types) + 1);
     strcpy(ret_match.types,match.Types);
-
-    // ret_match.service = match.wsa__EndpointReference.ServiceName->PortName;
-    // ret_match.version = match.MetadataVersion;
 
     ret_match.scopes = malloc (0);
     ret_match.scope_count = 0;
@@ -167,37 +159,37 @@ void wsdd_event_ResolveMatches(struct soap *soap, unsigned int InstanceId, const
 
 void MessageMapping__insert_element(struct MessageMapping* self,struct MessageEntry * msg, int index)
 { 
-    int i;
-    int count = self->count;
-    self->list = (struct MessageEntry **) realloc (self->list,sizeof (struct MessageEntry*) * (count+1));
-    for(i=self->count; i> index; i--){
-        self->list[i] = self->list[i-1];
-    }
-    self->list[index]=msg;
-    self->count++;
-    return;
+  int i;
+  int count = self->count;
+  self->list = (struct MessageEntry **) realloc (self->list,sizeof (struct MessageEntry*) * (count+1));
+  for(i=self->count; i> index; i--){
+      self->list[i] = self->list[i-1];
+  }
+  self->list[index]=msg;
+  self->count++;
+  return;
 };
 
 struct MessageEntry ** MessageMapping__remove_element_and_shift(struct MessageMapping* self, struct MessageEntry **array, int index, int array_length)
 {
-    int i;
-    for(i = index; i < array_length; i++) {
-        array[i] = array[i + 1];
-    }
-    return array;
+  int i;
+  for(i = index; i < array_length; i++) {
+      array[i] = array[i + 1];
+  }
+  return array;
 };
 
 
 void MessageMapping__remove_element(struct MessageMapping* self, int index){
-    //Remove element and shift content
-    self->list = MessageMapping__remove_element_and_shift(self,self->list, index, self->count);  /* First shift the elements, then reallocate */
-    //Resize count
-    self->count--;
-    //Assign arythmatic
-    int count = self->count; 
-    //Resize array memory
-    self->list = realloc (self->list,sizeof(struct MessageEntry) * count);
-    return;
+  //Remove element and shift content
+  self->list = MessageMapping__remove_element_and_shift(self,self->list, index, self->count);  /* First shift the elements, then reallocate */
+  //Resize count
+  self->count--;
+  //Assign arythmatic
+  int count = self->count;
+  //Resize array memory
+  self->list = realloc (self->list,sizeof(struct MessageEntry) * count);
+  return;
 };
 
 
@@ -214,7 +206,10 @@ void sendProbe(void * data, int (*cc)(void * )){
 
   struct MessageEntry * msg = (struct MessageEntry *)malloc(sizeof(struct MessageEntry));
   msg->cc = cc;
-  msg->id = soap_wsa_rand_uuid(serv);
+  char * nid = soap_wsa_rand_uuid(serv);
+  msg->id = malloc(strlen(nid) +1);
+  strcpy(msg->id,nid);
+
   msg->data = data;
   if(!init){
     MAPPINGS = (struct MessageMapping *)malloc(sizeof(struct MessageMapping));
@@ -244,6 +239,8 @@ void sendProbe(void * data, int (*cc)(void * )){
   //Pop message from mapping
   int index = MessageMapping__get_index_of_msg(MAPPINGS,msg->id);
   MessageMapping__remove_element(MAPPINGS,index);
+  free(msg);
+
   return;
 }
 

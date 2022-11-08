@@ -32,11 +32,10 @@ aclocal
 autoconf
 automake --add-missing
 
-echo "Src ... : " $GSOAP_SRC_DIR
 rm -rf src/generated
 mkdir src/
 mkdir src/generated
 $GSOAP_SRC_DIR/build/bin/wsdl2h -x -t wsdl/typemap.dat -o src/generated/discovery.h -c \
 https://www.onvif.org/onvif/ver10/network/wsdl/remotediscovery.wsdl \
 http://schemas.xmlsoap.org/ws/2005/04/discovery/ws-discovery.wsdl 
-$GSOAP_SRC_DIR/build/bin/soapcpp2 -CL -2 -x -I$GSOAP_SRC_DIR/gsoap/import:gsoap-2.8/gsoap src/generated/discovery.h -dsrc/generated
+$GSOAP_SRC_DIR/build/bin/soapcpp2 -CL -2 -x -I$GSOAP_SRC_DIR/gsoap/import:$GSOAP_SRC_DIR/gsoap src/generated/discovery.h -dsrc/generated
