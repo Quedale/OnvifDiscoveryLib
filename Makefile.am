@@ -5,6 +5,6 @@ DEPDIR= .deps
 
 lib_LTLIBRARIES = libonvifdisco.la
 libonvifdisco_la_SOURCES = src/discoverer.c src/discoverer.h src/onvif_discovery.c src/onvif_discovery.h $(GSOAP_SRC_DIR)/gsoap/dom.c $(GSOAP_SRC_DIR)/gsoap/stdsoap2.c $(GSOAP_SRC_DIR)/gsoap/plugin/wsaapi.c $(GSOAP_SRC_DIR)/gsoap/plugin/wsddapi.c src/generated/soapClient.c src/generated/soapC.c
-libonvifdisco_la_CFLAGS= -c -Wall `pkg-config --cflags glib-2.0 gtk+-3.0` -I$(GSOAP_SRC_DIR)/ -I$(GSOAP_SRC_DIR)/build/include/ -I$(GSOAP_SRC_DIR)/gsoap/import -I$(GSOAP_SRC_DIR)/gsoap/custom -I$(GSOAP_SRC_DIR)/gsoap/plugin -I$(top_srcdir)/src/generated
+libonvifdisco_la_CFLAGS= -c -Wall `pkg-config --cflags glib-2.0 gtk+-3.0` -I$(GSOAP_SRC_DIR)/ -I$(GSOAP_SRC_DIR)/build/include/ -I$(GSOAP_SRC_DIR)/gsoap/import -I$(GSOAP_SRC_DIR)/gsoap/custom -I$(GSOAP_SRC_DIR)/gsoap/plugin -I$(srcdir)/src/generated
 libonvifdisco_la_LDFLAGS= 
 include_HEADERS= src/discoverer.h src/onvif_discovery.h
