@@ -5,7 +5,7 @@
 #include "onvif_discovery.h"
 
 struct MessageEntry {
-  const char * id;
+  char * id;
   int (*cc)(void * );
   void * data;
 };
@@ -206,7 +206,7 @@ void sendProbe(void * data, int (*cc)(void * )){
 
   struct MessageEntry * msg = (struct MessageEntry *)malloc(sizeof(struct MessageEntry));
   msg->cc = cc;
-  char * nid = soap_wsa_rand_uuid(serv);
+  char * nid = (char *) soap_wsa_rand_uuid(serv);
   msg->id = malloc(strlen(nid) +1);
   strcpy(msg->id,nid);
 
@@ -298,15 +298,16 @@ char * onvif_extract_scope(char * key, struct ProbMatch * match){
   const char delimeter[2] = "/";
   const char * onvif_key_del = "onvif://www.onvif.org/";
   char* key_w_del;
-  char* ret_val;
+  char* ret_val = "";
   int alloc = 0;
   //Concat key with delimeter
   key_w_del = malloc(strlen(key)+1+strlen(delimeter));
   strcpy(key_w_del, key);
   strcat(key_w_del, delimeter);
-  
+  printf("---------------SCOPES--------------\n");
   for (a = 0 ; a < match->scope_count ; ++a) {
     //Check for onvif key prefix
+    printf("scope : %s\n",match->scopes[a]);
     if(startsWith(onvif_key_del, match->scopes[a])){
         
       //Drop onvif scope prefix
