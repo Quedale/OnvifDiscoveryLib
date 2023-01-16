@@ -1,6 +1,7 @@
 #include "generated/soapH.h"
 #include "wsddapi.h"
 #include "generated/wsdd.nsmap"
+#include "probmatch.h"
 
 #include "onvif_discovery.h"
 
@@ -16,8 +17,7 @@ struct MessageMapping {
 };
 
 
-int init;
-struct MessageMapping * MAPPINGS;
+struct MessageMapping * MAPPINGS = NULL;
 
 //Place holder for successful client compile
 void wsdd_event_Hello(struct soap *soap, unsigned int InstanceId, const char *SequenceId, unsigned int MessageNumber, const char *MessageID, const char *RelatesTo, const char *EndpointReference, const char *Types, const char *Scopes, const char *MatchBy, const char *XAddrs, unsigned int MetadataVersion)
@@ -73,8 +73,7 @@ void wsdd_event_ProbeMatches(struct soap *soap, unsigned int InstanceId, const c
 {
 
   DiscoveredServer * server =  (DiscoveredServer *) malloc(sizeof(DiscoveredServer));
-  server->match_count = ProbeMatches->__sizeProbeMatch;
-  server->matches = (struct ProbMatch *) malloc (sizeof (struct ProbMatch) * server->match_count);
+  server->matches = ProbMatches__create();
   server->msg_uuid = (char *) MessageID;
   server->relate_uuid = (char *) RelatesTo;
 
@@ -93,24 +92,16 @@ void wsdd_event_ProbeMatches(struct soap *soap, unsigned int InstanceId, const c
   // printf("LAST_MESSAGE : '%s'\n",entry->id);
   int i;
   for (i=0;i<ProbeMatches->__sizeProbeMatch;i++){
-    struct ProbMatch ret_match;
+
+    ProbMatch *ret_match = ProbMatch__create();
 
     struct wsdd__ProbeMatchType match = ProbeMatches->ProbeMatch[i];
 
-    ret_match.prob_uuid = malloc(strlen(RelatesTo) + 1);
-    strcpy(ret_match.prob_uuid,(char *) RelatesTo);
+    ProbMatch__set_prob_uuid(ret_match,(char *) RelatesTo);
+    ProbMatch__set_addr_uuid(ret_match,match.wsa__EndpointReference.Address);
+    ProbMatch__set_addr(ret_match,match.XAddrs);
+    ProbMatch__set_types(ret_match,match.Types);
 
-    ret_match.addr_uuid = malloc(strlen(match.wsa__EndpointReference.Address) + 1);
-    strcpy(ret_match.addr_uuid,match.wsa__EndpointReference.Address);
-
-    ret_match.addr = malloc(strlen(match.XAddrs) + 1);
-    strcpy(ret_match.addr,match.XAddrs);
-
-    ret_match.types = malloc(strlen(match.Types) + 1);
-    strcpy(ret_match.types,match.Types);
-
-    ret_match.scopes = malloc (0);
-    ret_match.scope_count = 0;
     // printf("ret_match.prob_uuid : %s\n",ret_match.prob_uuid);
     // printf("ret_match.addr_uuid : %s\n",ret_match.addr_uuid);
     // printf("ret_match.addr : %s\n",ret_match.addr);
@@ -121,8 +112,6 @@ void wsdd_event_ProbeMatches(struct soap *soap, unsigned int InstanceId, const c
     // printf("match.Scopes->__item : %s\n",match.Scopes->__item);
     
     char *tmp;
-    ret_match.scope_count = 0;
-
     char *p = strtok ((char *)match.Scopes->__item, "\n");
     while (p != NULL){
       tmp=trimwhitespace(p);
@@ -130,14 +119,12 @@ void wsdd_event_ProbeMatches(struct soap *soap, unsigned int InstanceId, const c
         p = strtok(NULL,"\n");
         continue;
       }
-      ret_match.scope_count++;
-      ret_match.scopes = realloc (ret_match.scopes,sizeof (char *) * ret_match.scope_count);
-      ret_match.scopes[ret_match.scope_count-1]= malloc(strlen(tmp)+1);
-      strcpy(ret_match.scopes[ret_match.scope_count-1],tmp);
+
+      ProbMatch__insert_scope(ret_match,tmp);
       p = strtok (NULL, "\n");
     }
 
-    server->matches[i] = ret_match;
+    ProbMatches__insert_match(server->matches,ret_match);
 
   }
   
@@ -145,6 +132,9 @@ void wsdd_event_ProbeMatches(struct soap *soap, unsigned int InstanceId, const c
   ret_event.data = entry->data;
   ret_event.server = server;
   entry->cc (&ret_event);
+
+  ProbMatches__destroy(server->matches);
+  free(server);
 }
 
 soap_wsdd_mode wsdd_event_Resolve(struct soap *soap, const char *MessageID, const char *ReplyTo, const char *EndpointReference, struct wsdd__ResolveMatchType *match)
@@ -211,7 +201,7 @@ void sendProbe(void * data, int (*cc)(void * )){
   strcpy(msg->id,nid);
 
   msg->data = data;
-  if(!init){
+  if(!MAPPINGS){
     MAPPINGS = (struct MessageMapping *)malloc(sizeof(struct MessageMapping));
     MAPPINGS->count = 0;
     MAPPINGS->list=malloc(0);
@@ -232,13 +222,15 @@ void sendProbe(void * data, int (*cc)(void * )){
     printf("error listening prob...\n");
   }
 
-  soap_destroy(serv);
-  soap_end(serv);
+  soap_destroy(serv); // delete managed objects
+  soap_end(serv);     // delete managed data and temporaries 
   soap_done(serv);
+  soap_free(serv); // finalize and delete the context
 
   //Pop message from mapping
   int index = MessageMapping__get_index_of_msg(MAPPINGS,msg->id);
   MessageMapping__remove_element(MAPPINGS,index);
+  free(msg->id);
   free(msg);
 
   return;
@@ -293,7 +285,7 @@ void urldecode2(char *dst, const char *src)
         *dst++ = '\0';
 }
 
-char * onvif_extract_scope(char * key, struct ProbMatch * match){
+char * onvif_extract_scope(char * key, ProbMatch * match){
   int a;
   const char delimeter[2] = "/";
   const char * onvif_key_del = "onvif://www.onvif.org/";
@@ -304,10 +296,10 @@ char * onvif_extract_scope(char * key, struct ProbMatch * match){
   key_w_del = malloc(strlen(key)+1+strlen(delimeter));
   strcpy(key_w_del, key);
   strcat(key_w_del, delimeter);
-  printf("---------------SCOPES--------------\n");
+  // printf("---------------SCOPES--------------\n");
   for (a = 0 ; a < match->scope_count ; ++a) {
     //Check for onvif key prefix
-    printf("scope : %s\n",match->scopes[a]);
+    // printf("scope : %s\n",match->scopes[a]);
     if(startsWith(onvif_key_del, match->scopes[a])){
         
       //Drop onvif scope prefix

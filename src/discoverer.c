@@ -50,7 +50,6 @@ main_thread_dispatch (void * e)
 
     printf("GTK Thread Dispatch Done...\n");
 
-    free(in);
     return FALSE;
 }
 
@@ -81,6 +80,7 @@ int discovery_event(void * e){
     g_mutex_clear (&evt_dispatch->lock);
     g_cond_clear (&evt_dispatch->cond);
 
+    free(evt_dispatch);
     return 0;
 }
 
@@ -110,6 +110,9 @@ void * start_discovery(void * vargp) {
     g_mutex_clear (&evt_dispatch->lock);
     g_cond_clear (&evt_dispatch->cond);
 
+    free(ret_event);
+    free(evt_dispatch);
+    free(in);
     return NULL;
 }
 
@@ -124,4 +127,5 @@ void UdpDiscoverer__start(struct UdpDiscoverer* self, void *user_data) {
     in->done_callback = self->done_callback;
 
     pthread_create(&thread_id, NULL, start_discovery, (void *)in);
+    pthread_detach(thread_id);
 }
