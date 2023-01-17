@@ -1,3 +1,4 @@
+pkgconfig_DATA = $(top_srcdir)/onvifdisco.pc
 AUTOMAKE_OPTIONS = foreign
 ACLOCAL_AMFLAGS = -I m4
 GSOAP_SRC_DIR ?= $(top_srcdir)/gsoap-2.8
