@@ -36,7 +36,7 @@ autoreconf -i
 rm -rf $(cd $(dirname "${BASH_SOURCE[0]}") && pwd)/src/generated
 mkdir $(cd $(dirname "${BASH_SOURCE[0]}") && pwd)/src/
 mkdir $(cd $(dirname "${BASH_SOURCE[0]}") && pwd)/src/generated
-$GSOAP_SRC_DIR/build/bin/wsdl2h -x -t $(cd $(dirname "${BASH_SOURCE[0]}") && pwd)/wsdl/typemap.dat -o $(cd $(dirname "${BASH_SOURCE[0]}") && pwd)/src/generated/discovery.h -c \
+wsdl2h -x -t $(cd $(dirname "${BASH_SOURCE[0]}") && pwd)/wsdl/typemap.dat -o $(cd $(dirname "${BASH_SOURCE[0]}") && pwd)/src/generated/discovery.h -c \
 https://www.onvif.org/onvif/ver10/network/wsdl/remotediscovery.wsdl \
 http://schemas.xmlsoap.org/ws/2005/04/discovery/ws-discovery.wsdl 
-$GSOAP_SRC_DIR/build/bin/soapcpp2 -CL -2 -x -I$GSOAP_SRC_DIR/gsoap/import:$GSOAP_SRC_DIR/gsoap $(cd $(dirname "${BASH_SOURCE[0]}") && pwd)/src/generated/discovery.h -d$(cd $(dirname "${BASH_SOURCE[0]}") && pwd)/src/generated
+soapcpp2 -CL -2 -x -I$GSOAP_SRC_DIR/gsoap/import:$GSOAP_SRC_DIR/gsoap $(cd $(dirname "${BASH_SOURCE[0]}") && pwd)/src/generated/discovery.h -d$(cd $(dirname "${BASH_SOURCE[0]}") && pwd)/src/generated
