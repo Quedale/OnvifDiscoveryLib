@@ -286,55 +286,41 @@ void urldecode2(char *dst, const char *src)
 }
 
 char * onvif_extract_scope(char * key, ProbMatch * match){
-  int a;
+  char* ret_val = "";
   const char delimeter[2] = "/";
   const char * onvif_key_del = "onvif://www.onvif.org/";
-  char* key_w_del;
-  char* ret_val = "";
-  int alloc = 0;
-  //Concat key with delimeter
-  key_w_del = malloc(strlen(key)+1+strlen(delimeter));
+
+  char key_w_del[strlen(key)+1+strlen(delimeter)];
   strcpy(key_w_del, key);
   strcat(key_w_del, delimeter);
-  // printf("---------------SCOPES--------------\n");
+
+  int a;
   for (a = 0 ; a < match->scope_count ; ++a) {
-    //Check for onvif key prefix
-    // printf("scope : %s\n",match->scopes[a]);
     if(startsWith(onvif_key_del, match->scopes[a])){
-        
       //Drop onvif scope prefix
-      char * subs = malloc(strlen(match->scopes[a])-strlen(onvif_key_del) + 1);
-      substring(match->scopes[a],subs,strlen(onvif_key_del)+1,strlen(match->scopes[a])-strlen(onvif_key_del)+1);
-      
+      char subs[strlen(match->scopes[a])-strlen(onvif_key_del) + 1];
+      strncpy(subs,match->scopes[a]+(strlen(onvif_key_del)),strlen(match->scopes[a]) - strlen(onvif_key_del)+1);
+
       if(startsWith(key_w_del,subs)){ // Found Scope
-          //Extract value
-          char * sval = malloc(strlen(match->scopes[a])-strlen(onvif_key_del) + 1);
-          substring(subs,sval,strlen(key_w_del)+1,strlen(subs)-strlen(key_w_del)+1);
+        //Extract value
+        char sval[strlen(subs)-strlen(key_w_del) + 1];
+        strncpy(sval,subs+(strlen(key_w_del)),strlen(subs) - strlen(key_w_del)+1);
 
-          //Decode http string (e.g. %20 = whitespace)
-          char *output = malloc(strlen(sval)+1);
-          urldecode2(output, sval);
+        //Decode http string (e.g. %20 = whitespace)
+        char output[strlen(sval)+1];
+        urldecode2(output, sval);
 
-          if(!alloc){
-            ret_val = malloc(strlen(output)+1);
-            memcpy(ret_val,output,strlen(output)+1);
-            alloc = 1;
-          } else {
-            ret_val = realloc(ret_val, strlen(ret_val) + strlen(output) +1);
-            strcat(ret_val, " ");
-            strcat(ret_val, output);
-          }
-
-          free(output);
-          free(sval);
+        if(strlen(ret_val)==0){
+          ret_val = malloc(strlen(output)+1);
+          memcpy(ret_val,output,strlen(output)+1);
+        } else {
+          ret_val = realloc(ret_val, strlen(ret_val) + strlen(output) +1);
+          strcat(ret_val, " ");
+          strcat(ret_val, output);
         }
-
-        free(subs);
-    } else {//TODO possibly handle 3rd-party scopes
-        printf("\t\tScope : %s\n",match->scopes[a]);
+      }
     }
   }
 
-  free(key_w_del);
   return ret_val;
 }
