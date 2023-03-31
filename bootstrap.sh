@@ -1,10 +1,14 @@
 SKIP_GSOAP=0
+SKIP_WSDL=0
 GSOAP_SRC_DIR="${GSOAP_SRC_DIR:=gsoap-2.8}" 
 i=1;
 for arg in "$@" 
 do
     if [ $arg == "--skip-gsoap" ]; then
         SKIP_GSOAP=1
+    fi
+    if [ $arg == "--skip-wsdl" ]; then
+        SKIP_WSDL=1
     fi
     i=$((i + 1));
 done
@@ -33,10 +37,15 @@ autoconf
 automake --add-missing
 autoreconf -i
 
-rm -rf $(cd $(dirname "${BASH_SOURCE[0]}") && pwd)/src/generated
-mkdir $(cd $(dirname "${BASH_SOURCE[0]}") && pwd)/src/
-mkdir $(cd $(dirname "${BASH_SOURCE[0]}") && pwd)/src/generated
-wsdl2h -x -t $(cd $(dirname "${BASH_SOURCE[0]}") && pwd)/wsdl/typemap.dat -o $(cd $(dirname "${BASH_SOURCE[0]}") && pwd)/src/generated/discovery.h -c \
-https://www.onvif.org/onvif/ver10/network/wsdl/remotediscovery.wsdl \
-http://schemas.xmlsoap.org/ws/2005/04/discovery/ws-discovery.wsdl 
-soapcpp2 -CL -2 -x -I$GSOAP_SRC_DIR/gsoap/import:$GSOAP_SRC_DIR/gsoap $(cd $(dirname "${BASH_SOURCE[0]}") && pwd)/src/generated/discovery.h -d$(cd $(dirname "${BASH_SOURCE[0]}") && pwd)/src/generated
+if [ $SKIP_WSDL -eq 0 ]; then
+    echo "Generating WSDL gsoap files..."
+    rm -rf $(cd $(dirname "${BASH_SOURCE[0]}") && pwd)/src/generated
+    mkdir $(cd $(dirname "${BASH_SOURCE[0]}") && pwd)/src/
+    mkdir $(cd $(dirname "${BASH_SOURCE[0]}") && pwd)/src/generated
+    wsdl2h -x -t $(cd $(dirname "${BASH_SOURCE[0]}") && pwd)/wsdl/typemap.dat -o $(cd $(dirname "${BASH_SOURCE[0]}") && pwd)/src/generated/discovery.h -c \
+    https://www.onvif.org/onvif/ver10/network/wsdl/remotediscovery.wsdl \
+    http://schemas.xmlsoap.org/ws/2005/04/discovery/ws-discovery.wsdl 
+    soapcpp2 -CL -2 -x -I$GSOAP_SRC_DIR/gsoap/import:$GSOAP_SRC_DIR/gsoap $(cd $(dirname "${BASH_SOURCE[0]}") && pwd)/src/generated/discovery.h -d$(cd $(dirname "${BASH_SOURCE[0]}") && pwd)/src/generated
+else
+    echo "Skipping WSDL class generation..."
+fi
