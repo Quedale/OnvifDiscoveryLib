@@ -99,8 +99,12 @@ void wsdd_event_ProbeMatches(struct soap *soap, unsigned int InstanceId, const c
 
     ProbMatch__set_prob_uuid(ret_match,(char *) RelatesTo);
     ProbMatch__set_addr_uuid(ret_match,match.wsa__EndpointReference.Address);
-    ProbMatch__set_addr(ret_match,match.XAddrs);
+    char* token;
+    while ((token = strtok_r(match.XAddrs, " ", &match.XAddrs))){
+          ProbMatch__add_addr(ret_match,token);
+    }
     ProbMatch__set_types(ret_match,match.Types);
+    ProbMatch__set_version(ret_match,match.MetadataVersion);
 
     // printf("ret_match.prob_uuid : %s\n",ret_match.prob_uuid);
     // printf("ret_match.addr_uuid : %s\n",ret_match.addr_uuid);
@@ -112,16 +116,16 @@ void wsdd_event_ProbeMatches(struct soap *soap, unsigned int InstanceId, const c
     // printf("match.Scopes->__item : %s\n",match.Scopes->__item);
     
     char *tmp;
-    char *p = strtok ((char *)match.Scopes->__item, "\n");
+    char *p = strtok_r ((char *)match.Scopes->__item, "\n", &match.Scopes->__item);
     while (p != NULL){
       tmp=trimwhitespace(p);
       if(tmp[0] == '\0'){
-        p = strtok(NULL,"\n");
+        p = strtok_r(match.Scopes->__item,"\n", &match.Scopes->__item);
         continue;
       }
 
       ProbMatch__insert_scope(ret_match,tmp);
-      p = strtok (NULL, "\n");
+      p = strtok_r (match.Scopes->__item, "\n", &match.Scopes->__item);
     }
 
     ProbMatches__insert_match(server->matches,ret_match);

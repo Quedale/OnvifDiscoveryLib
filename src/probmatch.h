@@ -4,7 +4,8 @@
  typedef struct {
     char *prob_uuid;
     char *addr_uuid; // SOAP-ENV:Envelope/SOAP-ENV:Body/d:ProbeMatches/d:ProbeMatch
-    char *addr; // SOAP-ENV:Envelope/SOAP-ENV:Body/d:ProbeMatches/d:ProbeMatch/wsa:EndpointReference/wsa:Address
+    char ** addrs; // // SOAP-ENV:Envelope/SOAP-ENV:Body/d:ProbeMatches/d:ProbeMatch/wsa:EndpointReference/wsa:Address
+    int addrs_count;
     char *types; // SOAP-ENV:Envelope/SOAP-ENV:Body/d:ProbeMatches/d:ProbeMatch/d:Types
     int scope_count;
     char **scopes; // SOAP-ENV:Envelope/SOAP-ENV:Body/d:ProbeMatches/d:ProbeMatch/d:Scopes
@@ -39,7 +40,7 @@ __attribute__ ((visibility("default")))
 extern void ProbMatch__set_addr_uuid(ProbMatch* self, char * addr_uuid);
 
 __attribute__ ((visibility("default"))) 
-extern void ProbMatch__set_addr(ProbMatch* self, char * addr);
+extern void ProbMatch__add_addr(ProbMatch* self, char * addr);
 
 __attribute__ ((visibility("default"))) 
 extern void ProbMatch__set_types(ProbMatch* self, char * types);
@@ -47,5 +48,7 @@ extern void ProbMatch__set_types(ProbMatch* self, char * types);
 __attribute__ ((visibility("default"))) 
 extern void ProbMatch__insert_scope(ProbMatch* self, char * scope);
 
+__attribute__ ((visibility("default"))) 
+extern void ProbMatch__set_version(ProbMatch* self, int scope);
 
 #endif

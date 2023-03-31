@@ -48,12 +48,14 @@ void ProbMatch__destroy(ProbMatch* self) {
     if (self) {
         int i;
         for(i=0;i<self->scope_count;i++){
-            char * scope = self->scopes[i];
-            free(scope);
+            free(self->scopes[i]);
         }
         free(self->prob_uuid);
         free(self->addr_uuid);
-        free(self->addr);
+        for(i=0;i<self->addrs_count;i++){
+            free(self->addrs[i]);
+        }
+        free(self->addrs);
         free(self->types);
         free(self->scopes);
         free(self->service);
@@ -64,9 +66,10 @@ void ProbMatch__destroy(ProbMatch* self) {
 void ProbMatch__init(ProbMatch* self) {
     self->prob_uuid = malloc(0);
     self->addr_uuid = malloc(0);
-    self->addr = malloc(0);
+    self->addrs = malloc(0);
     self->types = malloc(0);
     self->scope_count = 0;
+    self->addrs_count = 0;
     self->scopes = malloc(0);
     self->service = malloc(0);
     self->version = -1;
@@ -89,12 +92,18 @@ void ProbMatch__set_addr_uuid(ProbMatch* self, char * addr_uuid){
     strcpy(self->addr_uuid,addr_uuid);
 }
 
-void ProbMatch__set_addr(ProbMatch* self, char * addr){
-    self->addr = realloc(self->addr,strlen(addr) + 1);
-    strcpy(self->addr,addr);
+void ProbMatch__add_addr(ProbMatch* self, char * addr){
+    self->addrs_count++;
+    self->addrs = realloc (self->addrs, sizeof (char *) * self->addrs_count);
+    self->addrs[self->addrs_count-1] = (char*) malloc(strlen(addr)+1);
+    strcpy(self->addrs[self->addrs_count-1],addr);
 }
 
 void ProbMatch__set_types(ProbMatch* self, char * types){
     self->types = realloc(self->types,strlen(types) + 1);
     strcpy(self->types,types);
+}
+
+void ProbMatch__set_version(ProbMatch* self, int version){
+    self->version = version;
 }
