@@ -16,3 +16,13 @@ gsoap-2.8
 configure~
 m4
 subprojects
+libtool
+*.la
+*.pc
+*.a
+*.lai
+*.so
+*.lo
+*.o
+*.0
+.dirstamp
