@@ -198,6 +198,9 @@ void sendProbe(void * data, int (*cc)(void * )){
           exit(1);
   }
 
+  //TODO Support provided setting
+  serv->ipv4_multicast_ttl = 1;
+
   struct MessageEntry * msg = (struct MessageEntry *)malloc(sizeof(struct MessageEntry));
   msg->cc = cc;
   char * nid = (char *) soap_wsa_rand_uuid(serv);
@@ -214,12 +217,54 @@ void sendProbe(void * data, int (*cc)(void * )){
   MessageMapping__insert_element(MAPPINGS,msg,0);
 
   //Broadcast prob request
-  int ret = soap_wsdd_Probe(serv,SOAP_WSDD_ADHOC,SOAP_WSDD_TO_TS,"soap.udp://239.255.255.250:3702", msg->id,NULL,NULL,NULL,NULL);
+  int ret;
+  
+  //TODO allow sending NULL type probe by settings
+  // ret = soap_wsdd_Probe(serv,SOAP_WSDD_ADHOC,SOAP_WSDD_TO_TS,"soap.udp://239.255.255.250:3702", msg->id,
+  //   NULL, //ReplyTo
+  //   NULL, //Type
+  //   NULL, // Scopes
+  //   NULL); // MatchBy
+    
+  // if (ret != SOAP_OK){
+  //   soap_print_fault(serv, stderr);
+  //   printf("error sending prob...%i\n",ret);
+  // }
+
+  //Send NVD probe
+  ret = soap_wsdd_Probe(serv,SOAP_WSDD_ADHOC,SOAP_WSDD_TO_TS,"soap.udp://239.255.255.250:3702", msg->id,
+    NULL, //ReplyTo
+    "\"http://www.onvif.org/ver10/device/wsdl\":Device", //Type
+    NULL, // Scopes
+    NULL); // MatchBy
+
   if (ret != SOAP_OK){
     soap_print_fault(serv, stderr);
     printf("error sending prob...%i\n",ret);
   }
 
+  //Send NVT probe
+  ret = soap_wsdd_Probe(serv,SOAP_WSDD_ADHOC,SOAP_WSDD_TO_TS,"soap.udp://239.255.255.250:3702", msg->id,
+    NULL, //ReplyTo
+    "\"http://www.onvif.org/ver10/network/wsdl\":NetworkVideoTransmitter", //Type
+    NULL, // Scopes
+    NULL); // MatchBy
+  if (ret != SOAP_OK){
+    soap_print_fault(serv, stderr);
+    printf("error sending prob...%i\n",ret);
+  }
+
+  //Send NVD probe
+  ret = soap_wsdd_Probe(serv,SOAP_WSDD_ADHOC,SOAP_WSDD_TO_TS,"soap.udp://239.255.255.250:3702", msg->id,
+    NULL, //ReplyTo
+    "\"http://www.onvif.org/ver10/network/wsdl\":NetworkVideoDisplay", //Type
+    NULL, // Scopes
+    NULL); // MatchBy
+  if (ret != SOAP_OK){
+    soap_print_fault(serv, stderr);
+    printf("error sending prob...%i\n",ret);
+  }
+  
   //Listen for responses
   if (soap_wsdd_listen(serv, TIMEOUT_VAL) != SOAP_OK){
     soap_print_fault(serv, stderr);
