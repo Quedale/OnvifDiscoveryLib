@@ -33,6 +33,6 @@ extern struct UdpDiscoverer UdpDiscoverer__create(void * func, void * done_func)
 __attribute__ ((visibility("default"))) 
 extern void UdpDiscoverer__destroy(struct UdpDiscoverer* self); 
 __attribute__ ((visibility("default"))) 
-extern void UdpDiscoverer__start(struct UdpDiscoverer* self, void * user_data, int retry_count);
+extern void UdpDiscoverer__start(struct UdpDiscoverer* self, void * user_data, int retry_count, int timeout);
 
 #endif

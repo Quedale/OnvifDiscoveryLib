@@ -8,6 +8,7 @@
 struct DiscoverThreadInput {
     struct UdpDiscoverer * server;
     int retry_count;
+    int timeout;
     void * user_data;
     void * callback;
     void * done_callback;
@@ -89,7 +90,7 @@ void * start_discovery(void * vargp) {
 
     struct DiscoverThreadInput * in = (struct DiscoverThreadInput *) vargp;
     for(int i=0;i<in->retry_count;i++){
-        sendProbe(in, discovery_event);
+        sendProbe(in, in->timeout, discovery_event);
     }
 
     // //Dispatch notification of completion
@@ -119,7 +120,7 @@ void * start_discovery(void * vargp) {
     return NULL;
 }
 
-void UdpDiscoverer__start(struct UdpDiscoverer* self, void *user_data, int retry_count) {
+void UdpDiscoverer__start(struct UdpDiscoverer* self, void *user_data, int retry_count, int timeout) {
 
     pthread_t thread_id;
 
@@ -129,6 +130,7 @@ void UdpDiscoverer__start(struct UdpDiscoverer* self, void *user_data, int retry
     in->callback = self->found_callback;
     in->done_callback = self->done_callback;
     in->retry_count = retry_count;
+    in->timeout = timeout;
 
     pthread_create(&thread_id, NULL, start_discovery, (void *)in);
     pthread_detach(thread_id);

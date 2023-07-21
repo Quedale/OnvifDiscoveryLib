@@ -188,8 +188,7 @@ void MessageMapping__remove_element(struct MessageMapping* self, int index){
 
 
 
-const int TIMEOUT_VAL = 2;
-void sendProbe(void * data, int (*cc)(void * )){
+void sendProbe(void * data, int timeout, int (*cc)(void * )){
   
   struct soap * serv = soap_new1(SOAP_IO_UDP);
   if (!soap_valid_socket(soap_bind(serv, NULL, 0, 1000)))
@@ -266,7 +265,7 @@ void sendProbe(void * data, int (*cc)(void * )){
   }
   
   //Listen for responses
-  if (soap_wsdd_listen(serv, TIMEOUT_VAL) != SOAP_OK){
+  if (soap_wsdd_listen(serv, timeout) != SOAP_OK){
     soap_print_fault(serv, stderr);
     printf("error listening prob...\n");
   }
