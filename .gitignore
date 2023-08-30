@@ -26,3 +26,6 @@ libtool
 *.o
 *.0
 .dirstamp
+config.sub
+config.guess
+ltmain.sh

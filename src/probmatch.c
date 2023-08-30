@@ -12,7 +12,7 @@ void ProbMatches__init(ProbMatches* self) {
 
 ProbMatches* ProbMatches__create() {
     printf("ProbMatches__create...\n");
-    ProbMatches* result = (ProbMatches*) malloc(sizeof(ProbMatch));
+    ProbMatches* result = (ProbMatches*) malloc(sizeof(ProbMatches));
     ProbMatches__init(result);
     return result;
 }
@@ -32,7 +32,7 @@ void ProbMatches__destroy(ProbMatches* self) {
 
 void ProbMatches__insert_match(ProbMatches* self, ProbMatch* match){
     self->match_count++;
-    self->matches = realloc (self->matches, sizeof (ProbMatch) * self->match_count);
+    self->matches = realloc (self->matches, sizeof (ProbMatch*) * self->match_count);
     self->matches[self->match_count-1]=match;
 }
 
