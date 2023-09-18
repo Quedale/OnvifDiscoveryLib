@@ -182,7 +182,7 @@ void MessageMapping__remove_element(struct MessageMapping* self, int index){
   //Assign arythmatic
   int count = self->count;
   //Resize array memory
-  self->list = realloc (self->list,sizeof(struct MessageEntry) * count);
+  self->list = realloc (self->list,sizeof(struct MessageEntry*) * count);
   return;
 };
 
@@ -360,9 +360,9 @@ char * onvif_extract_scope(char * key, ProbMatch * match){
 
         if(strlen(ret_val)==0){
           ret_val = malloc(strlen(output)+1);
-          memcpy(ret_val,output,strlen(output)+1);
+          strcpy(ret_val,output);
         } else {
-          ret_val = realloc(ret_val, strlen(ret_val) + strlen(output) +1);
+          ret_val = realloc(ret_val, strlen(ret_val) + strlen(" ") + strlen(output) +1);
           strcat(ret_val, " ");
           strcat(ret_val, output);
         }
