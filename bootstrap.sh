@@ -688,13 +688,13 @@ cd ..
 
 if [ $SKIP_WSDL -eq 0 ]; then
     echo "Generating WSDL gsoap files..."
-    rm -rf $(cd $(dirname "${BASH_SOURCE[0]}") && pwd)/src/generated
-    mkdir $(cd $(dirname "${BASH_SOURCE[0]}") && pwd)/src/
-    mkdir $(cd $(dirname "${BASH_SOURCE[0]}") && pwd)/src/generated
-    wsdl2h -x -t $(cd $(dirname "${BASH_SOURCE[0]}") && pwd)/wsdl/typemap.dat -o $(cd $(dirname "${BASH_SOURCE[0]}") && pwd)/src/generated/discovery.h -c \
+    rm -rf $SUBPROJECT_DIR/../src/generated
+    mkdir $SUBPROJECT_DIR/../src/
+    mkdir $SUBPROJECT_DIR/../src/generated
+    wsdl2h -x -t $SUBPROJECT_DIR/../wsdl/typemap.dat -o $SUBPROJECT_DIR/../src/generated/discovery.h -c \
     https://www.onvif.org/onvif/ver10/network/wsdl/remotediscovery.wsdl \
     http://schemas.xmlsoap.org/ws/2005/04/discovery/ws-discovery.wsdl 
-    soapcpp2 -CL -2 -x -I$GSOAP_SRC_DIR/gsoap/import:$GSOAP_SRC_DIR/gsoap $(cd $(dirname "${BASH_SOURCE[0]}") && pwd)/src/generated/discovery.h -d$(cd $(dirname "${BASH_SOURCE[0]}") && pwd)/src/generated
+    soapcpp2 -CL -2 -x -I$GSOAP_SRC_DIR/gsoap/import:$GSOAP_SRC_DIR/gsoap $SUBPROJECT_DIR/../src/generated/discovery.h -d$SUBPROJECT_DIR/../src/generated
 else
     echo "Skipping WSDL class generation..."
 fi
