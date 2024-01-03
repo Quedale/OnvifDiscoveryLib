@@ -167,7 +167,7 @@ void MessageMapping__insert_element(struct MessageMapping* self,struct MessageEn
 struct MessageEntry ** MessageMapping__remove_element_and_shift(struct MessageMapping* self, struct MessageEntry **array, int index, int array_length)
 {
   int i;
-  for(i = index; i < array_length; i++) {
+  for(i = index; i < array_length-1; i++) {
       array[i] = array[i + 1];
   }
   return array;
