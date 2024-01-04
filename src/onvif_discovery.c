@@ -334,7 +334,8 @@ void urldecode2(char *dst, const char *src)
 }
 
 char * onvif_extract_scope(char * key, ProbMatch * match){
-  char* ret_val = "";
+  char* ret_val = malloc(1);
+  ret_val[0] = '\0';
   const char delimeter[2] = "/";
   const char * onvif_key_del = "onvif://www.onvif.org/";
 
@@ -359,7 +360,7 @@ char * onvif_extract_scope(char * key, ProbMatch * match){
         urldecode2(output, sval);
 
         if(strlen(ret_val)==0){
-          ret_val = malloc(strlen(output)+1);
+          ret_val = realloc(ret_val, strlen(output) +1);
           strcpy(ret_val,output);
         } else {
           ret_val = realloc(ret_val, strlen(ret_val) + strlen(" ") + strlen(output) +1);
