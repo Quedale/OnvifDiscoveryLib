@@ -29,3 +29,4 @@ libtool
 config.sub
 config.guess
 ltmain.sh
+release

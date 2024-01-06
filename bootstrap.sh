@@ -5,7 +5,7 @@ WORK_DIR=$(pwd)
 
 #Get project root directory based on autogen.sh file location
 SCRT_DIR=$(cd $(dirname "${BASH_SOURCE[0]}") && pwd)
-SUBPROJECT_DIR=$SCRT_DIR/subprojects
+SUBPROJECT_DIR=${SUBPROJECT_DIR:="$SCRT_DIR/subprojects"}
 
 #Cache folder for downloaded sources
 SRC_CACHE_DIR=$SUBPROJECT_DIR/.cache
@@ -18,7 +18,7 @@ FAILED=0
 
 SKIP_GSOAP=0
 SKIP_WSDL=0
-GSOAP_SRC_DIR="${GSOAP_SRC_DIR:=gsoap-2.8}" 
+GSOAP_SRC_DIR="${GSOAP_SRC_DIR:=subprojects/gsoap-2.8}" 
 i=1;
 for arg in "$@" 
 do
@@ -308,6 +308,9 @@ buildMakeProject(){
       printf "${RED}*****************************\n${NC}"
       printf "${RED}*** CMake failed ${srcdir} ***\n${NC}"
       printf "${RED}*****************************\n${NC}"
+      FAILED=1
+      cd $curr_dir
+      return
     fi
   fi
 
@@ -328,7 +331,7 @@ buildMakeProject(){
     fi
   fi
 
-  if [ -f "./configure" ]; then
+  if [ -f "./configure" ] && [ -z "${cmakedir}" ]; then
     printf "${ORANGE}*****************************\n${NC}"
     printf "${ORANGE}*** configure ${srcdir} ***\n${NC}"
     printf "${ORANGE}*****************************\n${NC}"
@@ -644,6 +647,47 @@ cd $SUBPROJECT_DIR
 
 ################################################################
 # 
+#    Build cutils
+#       
+################################################################
+#Check if new changes needs to be pulled
+git -C CUtils remote update 2> /dev/null
+LOCAL=$(git -C CUtils rev-parse @)
+REMOTE=$(git -C CUtils rev-parse @{u})
+BASE=$(git -C CUtils merge-base @ @{u})
+force_rebuild=0
+if [ $LOCAL = $REMOTE ]; then
+    echo "CUtils is already up-to-date. Do nothing..."
+elif [ $LOCAL = $BASE ]; then
+    echo "CUtils has new changes. Force rebuild..."
+    force_rebuild=1
+elif [ $REMOTE = $BASE ]; then
+    echo "CUtils has local changes. Doing nothing..."
+else
+    echo "Error CUtils is diverged."
+    exit 1
+fi
+
+if [ $force_rebuild -eq 0 ]; then
+  CUTILSLIB_PKG=$SUBPROJECT_DIR/CUtils/build/dist/lib/pkgconfig
+  PKG_CONFIG_PATH=$PKG_CONFIG_PATH:$CUTILSLIB_PKG \
+  pkg-config --exists --print-errors "cutils"
+  ret=$?
+else
+  ret=1
+fi
+
+if [ $ret != 0 ]; then
+  pullOrClone path=https://github.com/Quedale/CUtils.git ignorecache="true"
+  if [ $FAILED -eq 1 ]; then exit 1; fi
+  buildMakeProject srcdir="CUtils" prefix="$SUBPROJECT_DIR/CUtils/build/dist" cmakedir="." outoftree=true
+  if [ $FAILED -eq 1 ]; then exit 1; fi
+else
+  echo "CUtils already found."
+fi
+
+################################################################
+# 
 #    Build gSoap
 #       
 ################################################################
@@ -694,7 +738,7 @@ if [ $SKIP_WSDL -eq 0 ]; then
     wsdl2h -x -t $SUBPROJECT_DIR/../wsdl/typemap.dat -o $SUBPROJECT_DIR/../src/generated/discovery.h -c \
     https://www.onvif.org/onvif/ver10/network/wsdl/remotediscovery.wsdl \
     http://schemas.xmlsoap.org/ws/2005/04/discovery/ws-discovery.wsdl 
-    soapcpp2 -CL -2 -x -I$GSOAP_SRC_DIR/gsoap/import:$GSOAP_SRC_DIR/gsoap $SUBPROJECT_DIR/../src/generated/discovery.h -d$SUBPROJECT_DIR/../src/generated
+    soapcpp2 -pdiscosoap -CL -2 -x -I$GSOAP_SRC_DIR/gsoap/import:$GSOAP_SRC_DIR/gsoap $SUBPROJECT_DIR/../src/generated/discovery.h -d$SUBPROJECT_DIR/../src/generated
 else
     echo "Skipping WSDL class generation..."
 fi

@@ -3,6 +3,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdio.h>
+#include "clogger.h"
 
 
 void ProbMatches__init(ProbMatches* self) {
@@ -11,14 +12,14 @@ void ProbMatches__init(ProbMatches* self) {
 }
 
 ProbMatches* ProbMatches__create() {
-    printf("ProbMatches__create...\n");
+    C_TRACE("ProbMatches__create...");
     ProbMatches* result = (ProbMatches*) malloc(sizeof(ProbMatches));
     ProbMatches__init(result);
     return result;
 }
 
 void ProbMatches__destroy(ProbMatches* self) {
-    printf("ProbMatches__destroy...\n");
+    C_TRACE("ProbMatches__destroy...");
     if (self) {
         int i;
         for(i=0;i<self->match_count;i++){
@@ -44,7 +45,7 @@ void ProbMatch__insert_scope(ProbMatch* self, char * scope){
 }
 
 void ProbMatch__destroy(ProbMatch* self) {
-    printf("ProbMatch__destroy...\n");
+    C_TRACE("ProbMatch__destroy...");
     if (self) {
         int i;
         for(i=0;i<self->scope_count;i++){
@@ -55,40 +56,52 @@ void ProbMatch__destroy(ProbMatch* self) {
         for(i=0;i<self->addrs_count;i++){
             free(self->addrs[i]);
         }
+
         free(self->addrs);
-        free(self->types);
+        if(self->types)
+            free(self->types);
         free(self->scopes);
-        free(self->service);
+        if(self->service)
+            free(self->service);
         free(self);
     }
+    C_TRACE("ProbMatch__destroy... done");
 }
 
 void ProbMatch__init(ProbMatch* self) {
-    self->prob_uuid = malloc(0);
-    self->addr_uuid = malloc(0);
+    self->prob_uuid = NULL;
+    self->addr_uuid = NULL;
     self->addrs = malloc(0);
-    self->types = malloc(0);
+    self->types = NULL;
     self->scope_count = 0;
     self->addrs_count = 0;
     self->scopes = malloc(0);
-    self->service = malloc(0);
+    self->service = NULL;
     self->version = -1;
 }
 
 ProbMatch* ProbMatch__create() {
-    printf("ProbMatch__create...\n");
+    C_TRACE("ProbMatch__create...");
     ProbMatch* result = (ProbMatch*) malloc(sizeof(ProbMatch));
     ProbMatch__init(result);
     return result;
 }
 
 void ProbMatch__set_prob_uuid(ProbMatch* self, char * prob_uuid){
-    self->prob_uuid = realloc(self->prob_uuid,strlen(prob_uuid) + 1);
+    if(!self->prob_uuid){
+        self->prob_uuid = malloc(strlen(prob_uuid) + 1);
+    } else {
+        self->prob_uuid = realloc(self->prob_uuid,strlen(prob_uuid) + 1);
+    }
     strcpy(self->prob_uuid,prob_uuid);
 }
 
 void ProbMatch__set_addr_uuid(ProbMatch* self, char * addr_uuid){
-    self->addr_uuid = realloc(self->addr_uuid,strlen(addr_uuid) + 1);
+    if(!self->addr_uuid){
+        self->addr_uuid = malloc(strlen(addr_uuid) + 1);
+    } else {
+        self->addr_uuid = realloc(self->addr_uuid,strlen(addr_uuid) + 1);
+    }
     strcpy(self->addr_uuid,addr_uuid);
 }
 
@@ -100,7 +113,11 @@ void ProbMatch__add_addr(ProbMatch* self, char * addr){
 }
 
 void ProbMatch__set_types(ProbMatch* self, char * types){
-    self->types = realloc(self->types,strlen(types) + 1);
+    if(!self->types){
+        self->types = malloc(strlen(types) + 1);
+    } else {
+        self->types = realloc(self->types,strlen(types) + 1);
+    }
     strcpy(self->types,types);
 }
 

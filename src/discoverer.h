@@ -2,7 +2,6 @@
 #ifndef UDP_DISCOVERER_H_   /* Include guard */
 #define UDP_DISCOVERER_H_
 
-#include <glib.h>
 #include <stdio.h> 
 #include <stdlib.h> 
 #include <unistd.h> 
@@ -15,17 +14,8 @@
 
 
 struct UdpDiscoverer {
-    struct sockaddr_in     *servaddr; 
-    void * found_callback;
-    void * done_callback;
-};
-
-struct EventDispatch {
-    void * callback;
-    void * data;
-    GMutex lock;
-    GCond cond;
-    gboolean fired;
+    void (*found_callback)(DiscoveryEvent *);
+    void (*done_callback)(DiscoveryEvent *);
 };
 
 __attribute__ ((visibility("default"))) 

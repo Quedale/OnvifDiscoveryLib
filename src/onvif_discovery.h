@@ -16,7 +16,7 @@ typedef struct {
 } DiscoveryEvent;
 
 __attribute__ ((visibility("default"))) 
-extern void sendProbe(void * data, int timeout, int (*cc)(void * ));
+extern void sendProbe(void * data, int timeout, int (*cc)(DiscoveryEvent *));
 
 __attribute__ ((visibility("default"))) 
 extern char * onvif_extract_scope(char * key, ProbMatch * match);

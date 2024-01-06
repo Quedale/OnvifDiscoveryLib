@@ -1,34 +1,32 @@
-#include "generated/soapH.h"
+#ifdef SOAP_H_FILE      /* if set, use the soapcpp2-generated fileH.h file as specified with: cc ... -DSOAP_H_FILE=fileH.h */
+# include "stdsoap2.h"
+# include SOAP_XSTRINGIFY(SOAP_H_FILE)
+#else
+# include "generated/soapH.h"	/* or manually replace with soapcpp2-generated *H.h file */
+#endif
+#include "plugin/logging.h"
 #include "wsddapi.h"
 #include "generated/wsdd.nsmap"
 #include "probmatch.h"
-
+#include "clogger.h"
 #include "onvif_discovery.h"
 
 struct MessageEntry {
   char * id;
-  int (*cc)(void * );
+  int (*cc)(DiscoveryEvent * );
   void * data;
 };
 
-struct MessageMapping {
-    int count;
-    struct MessageEntry **list;
-};
-
-
-struct MessageMapping * MAPPINGS = NULL;
-
 //Place holder for successful client compile
 void wsdd_event_Hello(struct soap *soap, unsigned int InstanceId, const char *SequenceId, unsigned int MessageNumber, const char *MessageID, const char *RelatesTo, const char *EndpointReference, const char *Types, const char *Scopes, const char *MatchBy, const char *XAddrs, unsigned int MetadataVersion)
-{ printf("wsdd_event_Hello\n"); }
+{ C_WARN("wsdd_event_Hello"); }
 
 void wsdd_event_Bye(struct soap *soap, unsigned int InstanceId, const char *SequenceId, unsigned int MessageNumber, const char *MessageID, const char *RelatesTo, const char *EndpointReference, const char *Types, const char *Scopes, const char *MatchBy, const char *XAddrs, unsigned int *MetadataVersion)
-{ printf("wsdd_event_Bye\n"); }
+{ C_WARN("wsdd_event_Bye"); }
 
 soap_wsdd_mode wsdd_event_Probe(struct soap *soap, const char *MessageID, const char *ReplyTo, const char *Types, const char *Scopes, const char *MatchBy, struct wsdd__ProbeMatchesType *ProbeMatches)
 {
-  printf("wsdd_event_Probe\n");
+  C_WARN("wsdd_event_Probe");
   return SOAP_WSDD_ADHOC;
 }
 
@@ -58,38 +56,15 @@ char *trimwhitespace(char *str)
   return str;
 }
 
-int MessageMapping__get_index_of_msg(struct MessageMapping* self, const char * msgid)
-{
-  int i;
-  for(i=0;i<self->count;i++){
-    if(strcmp(self->list[i]->id,msgid) == 0){
-      return i;
-    }
-  }
-  return -1;
-}
-
 void wsdd_event_ProbeMatches(struct soap *soap, unsigned int InstanceId, const char *SequenceId, unsigned int MessageNumber, const char *MessageID, const char *RelatesTo, struct wsdd__ProbeMatchesType *ProbeMatches)
 {
-
+  C_TRACE("ProbeMatches found...");
   DiscoveredServer * server =  (DiscoveredServer *) malloc(sizeof(DiscoveredServer));
   server->matches = ProbMatches__create();
   server->msg_uuid = (char *) MessageID;
   server->relate_uuid = (char *) RelatesTo;
 
-  // printf("wsdd_event_ProbeMatches\n"); 
-  // printf("MessageID : %s\n",MessageID);
-  // printf("RelatesTo : '%s'\n",RelatesTo);
-  // printf("SequenceId : %s\n",SequenceId);
-
-  int index = MessageMapping__get_index_of_msg(MAPPINGS,RelatesTo);
-  if(index < 0){
-    printf("error index \n");
-    return;
-  }
-
-  struct MessageEntry * entry = MAPPINGS->list[index];
-  // printf("LAST_MESSAGE : '%s'\n",entry->id);
+  struct MessageEntry * entry = (struct MessageEntry *) soap->user;
   int i;
   for (i=0;i<ProbeMatches->__sizeProbeMatch;i++){
 
@@ -105,15 +80,6 @@ void wsdd_event_ProbeMatches(struct soap *soap, unsigned int InstanceId, const c
     }
     ProbMatch__set_types(ret_match,match.Types);
     ProbMatch__set_version(ret_match,match.MetadataVersion);
-
-    // printf("ret_match.prob_uuid : %s\n",ret_match.prob_uuid);
-    // printf("ret_match.addr_uuid : %s\n",ret_match.addr_uuid);
-    // printf("ret_match.addr : %s\n",ret_match.addr);
-    // printf("ret_match.types : %s\n",ret_match.types);
-    // printf("ret_match.service : %s\n",ret_match.service);
-    // printf("ret_match.version : %d\n",ret_match.version);
-    // printf("match.Scopes->MatchBy : %s\n",match.Scopes->MatchBy);
-    // printf("match.Scopes->__item : %s\n",match.Scopes->__item);
     
     char *tmp;
     char *p = strtok_r ((char *)match.Scopes->__item, "\n", &match.Scopes->__item);
@@ -143,83 +109,53 @@ void wsdd_event_ProbeMatches(struct soap *soap, unsigned int InstanceId, const c
 
 soap_wsdd_mode wsdd_event_Resolve(struct soap *soap, const char *MessageID, const char *ReplyTo, const char *EndpointReference, struct wsdd__ResolveMatchType *match)
 {
-    printf("wsdd_event_Resolve\n");
+    C_WARN("wsdd_event_Resolve");
   return SOAP_WSDD_ADHOC;
 }
 
 void wsdd_event_ResolveMatches(struct soap *soap, unsigned int InstanceId, const char * SequenceId, unsigned int MessageNumber, const char *MessageID, const char *RelatesTo, struct wsdd__ResolveMatchType *match)
-{ printf("wsdd_event_ResolveMatches\n"); }
+{ C_WARN("wsdd_event_ResolveMatches"); }
 
-
-void MessageMapping__insert_element(struct MessageMapping* self,struct MessageEntry * msg, int index)
-{ 
-  int i;
-  int count = self->count;
-  self->list = (struct MessageEntry **) realloc (self->list,sizeof (struct MessageEntry*) * (count+1));
-  for(i=self->count; i> index; i--){
-      self->list[i] = self->list[i-1];
-  }
-  self->list[index]=msg;
-  self->count++;
-  return;
-};
-
-struct MessageEntry ** MessageMapping__remove_element_and_shift(struct MessageMapping* self, struct MessageEntry **array, int index, int array_length)
-{
-  int i;
-  for(i = index; i < array_length-1; i++) {
-      array[i] = array[i + 1];
-  }
-  return array;
-};
-
-
-void MessageMapping__remove_element(struct MessageMapping* self, int index){
-  //Remove element and shift content
-  self->list = MessageMapping__remove_element_and_shift(self,self->list, index, self->count);  /* First shift the elements, then reallocate */
-  //Resize count
-  self->count--;
-  //Assign arythmatic
-  int count = self->count;
-  //Resize array memory
-  self->list = realloc (self->list,sizeof(struct MessageEntry*) * count);
-  return;
-};
-
-
-
-void sendProbe(void * data, int timeout, int (*cc)(void * )){
+void sendProbe(void * data, int timeout, int (*cc)(DiscoveryEvent *)){
   
-  struct soap * serv = soap_new1(SOAP_IO_UDP);
-  if (!soap_valid_socket(soap_bind(serv, NULL, 0, 1000)))
+  char *debug_flag = NULL;
+
+  if (( debug_flag =getenv( "PROBE_DEBUG" )) != NULL )
+    C_INFO("PROBE_DEBUG variable set. '%s'",debug_flag) ;
+
+  struct soap serv;
+
+  memset((void*)&serv, 0, sizeof(serv));
+  soap_init1(&serv,SOAP_IO_UDP);
+
+  if(debug_flag){
+    soap_register_plugin(&serv, logging);
+    soap_set_logging_outbound(&serv,stdout);
+    soap_set_logging_inbound(&serv,stdout);
+  }
+
+  if (!soap_valid_socket(soap_bind(&serv, NULL, 0, 1000)))
   {
-          soap_print_fault(serv, stderr);
+          soap_print_fault(&serv, stderr);
           exit(1);
   }
 
   //TODO Support provided setting
-  serv->ipv4_multicast_ttl = 1;
+  // serv->ipv4_multicast_ttl = 1;
 
-  struct MessageEntry * msg = (struct MessageEntry *)malloc(sizeof(struct MessageEntry));
-  msg->cc = cc;
-  char * nid = (char *) soap_wsa_rand_uuid(serv);
-  msg->id = malloc(strlen(nid) +1);
-  strcpy(msg->id,nid);
+  struct MessageEntry msg;
+  msg.cc = cc;
+  char * nid = (char *) soap_wsa_rand_uuid(&serv);
+  msg.id = nid;
+  msg.data = data;
 
-  msg->data = data;
-  if(!MAPPINGS){
-    MAPPINGS = (struct MessageMapping *)malloc(sizeof(struct MessageMapping));
-    MAPPINGS->count = 0;
-    MAPPINGS->list=malloc(0);
-  }
-
-  MessageMapping__insert_element(MAPPINGS,msg,0);
+  serv.user = &msg;
 
   //Broadcast prob request
   int ret;
   
   //TODO allow sending NULL type probe by settings
-  // ret = soap_wsdd_Probe(serv,SOAP_WSDD_ADHOC,SOAP_WSDD_TO_TS,"soap.udp://239.255.255.250:3702", msg->id,
+  // ret = soap_wsdd_Probe(serv,SOAP_WSDD_ADHOC,SOAP_WSDD_TO_TS,"soap.udp://239.255.255.250:3702", msg.id,
   //   NULL, //ReplyTo
   //   NULL, //Type
   //   NULL, // Scopes
@@ -227,59 +163,56 @@ void sendProbe(void * data, int timeout, int (*cc)(void * )){
     
   // if (ret != SOAP_OK){
   //   soap_print_fault(serv, stderr);
-  //   printf("error sending prob...%i\n",ret);
+  //   C_ERROR("error sending prob...%i\n",ret);
   // }
 
-  //Send NVD probe
-  ret = soap_wsdd_Probe(serv,SOAP_WSDD_ADHOC,SOAP_WSDD_TO_TS,"soap.udp://239.255.255.250:3702", msg->id,
+  C_TRACE("Sending Device probe...");
+  ret = soap_wsdd_Probe(&serv,SOAP_WSDD_ADHOC,SOAP_WSDD_TO_TS,"soap.udp://239.255.255.250:3702", msg.id,
     NULL, //ReplyTo
     "\"http://www.onvif.org/ver10/device/wsdl\":Device", //Type
     NULL, // Scopes
     NULL); // MatchBy
 
   if (ret != SOAP_OK){
-    soap_print_fault(serv, stderr);
-    printf("error sending prob...%i\n",ret);
+    soap_print_fault(&serv, stderr);
+    C_ERROR("error sending prob...%i",ret);
   }
 
-  //Send NVT probe
-  ret = soap_wsdd_Probe(serv,SOAP_WSDD_ADHOC,SOAP_WSDD_TO_TS,"soap.udp://239.255.255.250:3702", msg->id,
+  C_TRACE("Sending NVT probe...");
+  ret = soap_wsdd_Probe(&serv,SOAP_WSDD_ADHOC,SOAP_WSDD_TO_TS,"soap.udp://239.255.255.250:3702", msg.id,
     NULL, //ReplyTo
     "\"http://www.onvif.org/ver10/network/wsdl\":NetworkVideoTransmitter", //Type
     NULL, // Scopes
     NULL); // MatchBy
   if (ret != SOAP_OK){
-    soap_print_fault(serv, stderr);
-    printf("error sending prob...%i\n",ret);
+    soap_print_fault(&serv, stderr);
+    C_ERROR("error sending prob...%i",ret);
   }
-
-  //Send NVD probe
-  ret = soap_wsdd_Probe(serv,SOAP_WSDD_ADHOC,SOAP_WSDD_TO_TS,"soap.udp://239.255.255.250:3702", msg->id,
+  
+  C_TRACE("Sending NVD probe...");
+  ret = soap_wsdd_Probe(&serv,SOAP_WSDD_ADHOC,SOAP_WSDD_TO_TS,"soap.udp://239.255.255.250:3702", msg.id,
     NULL, //ReplyTo
     "\"http://www.onvif.org/ver10/network/wsdl\":NetworkVideoDisplay", //Type
     NULL, // Scopes
     NULL); // MatchBy
   if (ret != SOAP_OK){
-    soap_print_fault(serv, stderr);
-    printf("error sending prob...%i\n",ret);
+    soap_print_fault(&serv, stderr);
+    C_ERROR("error sending prob...%i",ret);
   }
   
   //Listen for responses
-  if (soap_wsdd_listen(serv, timeout) != SOAP_OK){
-    soap_print_fault(serv, stderr);
-    printf("error listening prob...\n");
+  if (soap_wsdd_listen(&serv, timeout) != SOAP_OK){
+    soap_print_fault(&serv, stderr);
+    C_ERROR("error listening prob...");
   }
 
-  soap_destroy(serv); // delete managed objects
-  soap_end(serv);     // delete managed data and temporaries 
-  soap_done(serv);
-  soap_free(serv); // finalize and delete the context
-
-  //Pop message from mapping
-  int index = MessageMapping__get_index_of_msg(MAPPINGS,msg->id);
-  MessageMapping__remove_element(MAPPINGS,index);
-  free(msg->id);
-  free(msg);
+  if(debug_flag){
+    soap_set_logging_outbound(&serv,NULL);
+    soap_set_logging_inbound(&serv,NULL);
+  }
+  soap_destroy(&serv); // delete managed objects
+  soap_end(&serv);     // delete managed data and temporaries 
+  soap_done(&serv);
 
   return;
 }
