@@ -10,6 +10,7 @@
 #include "probmatch.h"
 #include "clogger.h"
 #include "onvif_discovery.h"
+#include "discovered_obj.h"
 
 struct MessageEntry {
   char * id;
@@ -98,13 +99,8 @@ void wsdd_event_ProbeMatches(struct soap *soap, unsigned int InstanceId, const c
 
   }
   
-  DiscoveryEvent ret_event;
-  ret_event.data = entry->data;
-  ret_event.server = server;
-  entry->cc (&ret_event);
-
-  ProbMatches__destroy(server->matches);
-  free(server);
+  DiscoveryEvent * ret_vent = DiscoveryEvent__create(server,entry->data);
+  entry->cc (ret_vent);
 }
 
 soap_wsdd_mode wsdd_event_Resolve(struct soap *soap, const char *MessageID, const char *ReplyTo, const char *EndpointReference, struct wsdd__ResolveMatchType *match)

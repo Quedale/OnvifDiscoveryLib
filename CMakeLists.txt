@@ -64,7 +64,8 @@ include(CPack)
 #Defining headers to export
 set(headers ${PROJECT_SOURCE_DIR}/src/discoverer.h 
 		        ${PROJECT_SOURCE_DIR}/src/onvif_discovery.h 
-		        ${PROJECT_SOURCE_DIR}/src/probmatch.h)
+		        ${PROJECT_SOURCE_DIR}/src/probmatch.h
+            ${PROJECT_SOURCE_DIR}/src/discovered_obj.h)
 
 #Setting pkgconfig file file variables
 set(prefix ${CMAKE_INSTALL_PREFIX})

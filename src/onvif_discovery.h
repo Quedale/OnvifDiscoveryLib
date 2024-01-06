@@ -2,18 +2,7 @@
 #define onvif_discovery_h__
 
 #include "probmatch.h" 
-
-typedef struct {
-    char *msg_uuid; // SOAP-ENV:Envelope/SOAP-ENV:Header/wsa:MessageID
-    char *relate_uuid; // SOAP-ENV:Envelope/SOAP-ENV:Header/wsa:RelatesTo
-    ProbMatches *matches; // SOAP-ENV:Envelope/SOAP-ENV:Body/d:ProbeMatches/
-} DiscoveredServer;
-
-typedef struct {
-    DiscoveredServer * server;
-    void * data;
-
-} DiscoveryEvent;
+#include "discovered_obj.h"
 
 __attribute__ ((visibility("default"))) 
 extern void sendProbe(void * data, int timeout, int (*cc)(DiscoveryEvent *));

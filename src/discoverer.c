@@ -55,14 +55,10 @@ void * start_discovery(void * vargp) {
         sendProbe(in, in->timeout, discovery_event);
     }
 
-    // //Dispatch notification of completion
-    DiscoveryEvent * ret_event =  (DiscoveryEvent *) malloc(sizeof(DiscoveryEvent)); 
-    ret_event->data = in->user_data;
-    ret_event->server = NULL;
-
+    //Dispatch notification of completion
+    DiscoveryEvent * ret_event = DiscoveryEvent__create(NULL,in->user_data);
     (in->done_callback) (ret_event);
 
-    free(ret_event);
     free(in);
     return NULL;
 }
