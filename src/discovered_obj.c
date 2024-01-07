@@ -1,5 +1,6 @@
 
 #include "discovered_obj.h"
+#include <stdlib.h>
 
 
 void priv_DiscoveryEvent__destroy(CObject * obj){

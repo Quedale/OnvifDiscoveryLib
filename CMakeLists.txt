@@ -45,6 +45,11 @@ add_library(onvifdisco STATIC  ${src_dir}
 
 target_link_libraries(onvifdisco PRIVATE ${CUTILS_LDFLAGS})
 target_compile_options(onvifdisco PRIVATE "SHELL: -c -DWITH_DOM -DSOAP_H_FILE=discosoapH.h")
+if (MSVC)
+  target_compile_options(onvifdisco PRIVATE "SHELL: -wd4244 -wd4267")
+else()
+  target_compile_options(onvifdisco PRIVATE "SHELL: -Wformat-truncation=0 -fPIC")
+endif()
 if(NOT WIN32)
   target_compile_options(onvifdisco PRIVATE "SHELL: -fvisibility=hidden")
 endif()
