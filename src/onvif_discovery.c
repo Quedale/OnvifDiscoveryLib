@@ -60,47 +60,72 @@ char *trimwhitespace(char *str)
 void wsdd_event_ProbeMatches(struct soap *soap, unsigned int InstanceId, const char *SequenceId, unsigned int MessageNumber, const char *MessageID, const char *RelatesTo, struct wsdd__ProbeMatchesType *ProbeMatches)
 {
   C_TRACE("ProbeMatches found...");
-  DiscoveredServer * server =  (DiscoveredServer *) malloc(sizeof(DiscoveredServer));
-  server->matches = ProbMatches__create();
-  server->msg_uuid = (char *) MessageID;
-  server->relate_uuid = (char *) RelatesTo;
 
+  ProbMatches * matches = ProbMatches__create();
   struct MessageEntry * entry = (struct MessageEntry *) soap->user;
+
+  //Check if message actually relates to our probe
+  if (strcmp(RelatesTo,entry->id)!=0) {
+    C_WARN("Unrelated id received. Expecting [%s] but was [%s].", RelatesTo, entry->id);
+    return;
+  }
+
   int i;
   for (i=0;i<ProbeMatches->__sizeProbeMatch;i++){
 
-    ProbMatch *ret_match = ProbMatch__create();
-
     struct wsdd__ProbeMatchType match = ProbeMatches->ProbeMatch[i];
+    //Check if valid ONVIF device
+    //TODO possible additional validation
+    if(!match.XAddrs || !match.Types){
+      C_WARN("Invalid response. Ingnoring...(Use 'PROBE_DEBUG' environment variable to troubleshoot)");
+      continue;
+    }
 
+    ProbMatch *ret_match = ProbMatch__create();
     ProbMatch__set_prob_uuid(ret_match,(char *) RelatesTo);
-    ProbMatch__set_addr_uuid(ret_match,match.wsa__EndpointReference.Address);
+
     char* token;
     while ((token = strtok_r(match.XAddrs, " ", &match.XAddrs))){
           ProbMatch__add_addr(ret_match,token);
     }
     ProbMatch__set_types(ret_match,match.Types);
-    ProbMatch__set_version(ret_match,match.MetadataVersion);
-    
-    char *tmp;
-    char *p = strtok_r ((char *)match.Scopes->__item, "\n", &match.Scopes->__item);
-    while (p != NULL){
-      tmp=trimwhitespace(p);
-      if(tmp[0] == '\0'){
-        p = strtok_r(match.Scopes->__item,"\n", &match.Scopes->__item);
-        continue;
-      }
 
-      ProbMatch__insert_scope(ret_match,tmp);
-      p = strtok_r (match.Scopes->__item, "\n", &match.Scopes->__item);
+    if(match.MetadataVersion){
+      ProbMatch__set_version(ret_match,match.MetadataVersion);
+    }
+    if(match.wsa__EndpointReference.Address){
+      ProbMatch__set_addr_uuid(ret_match,match.wsa__EndpointReference.Address);
+    }
+    if(match.Scopes && match.Scopes->__item){
+      char *tmp;
+      char *p = strtok_r ((char *)match.Scopes->__item, "\n", &match.Scopes->__item);
+      while (p != NULL){
+        tmp=trimwhitespace(p);
+        if(tmp[0] == '\0'){
+          p = strtok_r(match.Scopes->__item,"\n", &match.Scopes->__item);
+          continue;
+        }
+
+        ProbMatch__insert_scope(ret_match,tmp);
+        p = strtok_r (match.Scopes->__item, "\n", &match.Scopes->__item);
+      }
     }
 
-    ProbMatches__insert_match(server->matches,ret_match);
+    ProbMatches__insert_match(matches,ret_match);
 
   }
   
-  DiscoveryEvent * ret_vent = DiscoveryEvent__create(server,entry->data);
-  entry->cc (ret_vent);
+  if(matches->match_count > 0){ //No valid match in response.
+    DiscoveredServer * server =  (DiscoveredServer *) malloc(sizeof(DiscoveredServer));
+    server->matches = matches;
+    server->msg_uuid = (char *) MessageID;
+    server->relate_uuid = (char *) RelatesTo;
+    DiscoveryEvent * ret_vent = DiscoveryEvent__create(server,entry->data);
+    entry->cc (ret_vent);
+  } else {
+    CObject__destroy((CObject *)matches);
+  }
+
 }
 
 soap_wsdd_mode wsdd_event_Resolve(struct soap *soap, const char *MessageID, const char *ReplyTo, const char *EndpointReference, struct wsdd__ResolveMatchType *match)
@@ -139,19 +164,20 @@ void sendProbe(void * data, int timeout, int (*cc)(DiscoveryEvent *)){
   //TODO Support provided setting
   // serv->ipv4_multicast_ttl = 1;
 
-  struct MessageEntry msg;
-  msg.cc = cc;
+  struct MessageEntry * msg = malloc(sizeof(struct MessageEntry));
+  msg->cc = cc;
   char * nid = (char *) soap_wsa_rand_uuid(&serv);
-  msg.id = nid;
-  msg.data = data;
+  msg->id = malloc(strlen(nid)+1);
+  strcpy(msg->id,nid);
+  msg->data = data;
 
-  serv.user = &msg;
+  serv.user = msg;
 
   //Broadcast prob request
   int ret;
   
   //TODO allow sending NULL type probe by settings
-  // ret = soap_wsdd_Probe(serv,SOAP_WSDD_ADHOC,SOAP_WSDD_TO_TS,"soap.udp://239.255.255.250:3702", msg.id,
+  // ret = soap_wsdd_Probe(serv,SOAP_WSDD_ADHOC,SOAP_WSDD_TO_TS,"soap.udp://239.255.255.250:3702", msg->id,
   //   NULL, //ReplyTo
   //   NULL, //Type
   //   NULL, // Scopes
@@ -163,7 +189,7 @@ void sendProbe(void * data, int timeout, int (*cc)(DiscoveryEvent *)){
   // }
 
   C_TRACE("Sending Device probe...");
-  ret = soap_wsdd_Probe(&serv,SOAP_WSDD_ADHOC,SOAP_WSDD_TO_TS,"soap.udp://239.255.255.250:3702", msg.id,
+  ret = soap_wsdd_Probe(&serv,SOAP_WSDD_ADHOC,SOAP_WSDD_TO_TS,"soap.udp://239.255.255.250:3702", msg->id,
     NULL, //ReplyTo
     "\"http://www.onvif.org/ver10/device/wsdl\":Device", //Type
     NULL, // Scopes
@@ -175,7 +201,7 @@ void sendProbe(void * data, int timeout, int (*cc)(DiscoveryEvent *)){
   }
 
   C_TRACE("Sending NVT probe...");
-  ret = soap_wsdd_Probe(&serv,SOAP_WSDD_ADHOC,SOAP_WSDD_TO_TS,"soap.udp://239.255.255.250:3702", msg.id,
+  ret = soap_wsdd_Probe(&serv,SOAP_WSDD_ADHOC,SOAP_WSDD_TO_TS,"soap.udp://239.255.255.250:3702", msg->id,
     NULL, //ReplyTo
     "\"http://www.onvif.org/ver10/network/wsdl\":NetworkVideoTransmitter", //Type
     NULL, // Scopes
@@ -186,7 +212,7 @@ void sendProbe(void * data, int timeout, int (*cc)(DiscoveryEvent *)){
   }
   
   C_TRACE("Sending NVD probe...");
-  ret = soap_wsdd_Probe(&serv,SOAP_WSDD_ADHOC,SOAP_WSDD_TO_TS,"soap.udp://239.255.255.250:3702", msg.id,
+  ret = soap_wsdd_Probe(&serv,SOAP_WSDD_ADHOC,SOAP_WSDD_TO_TS,"soap.udp://239.255.255.250:3702", msg->id,
     NULL, //ReplyTo
     "\"http://www.onvif.org/ver10/network/wsdl\":NetworkVideoDisplay", //Type
     NULL, // Scopes
@@ -210,6 +236,8 @@ void sendProbe(void * data, int timeout, int (*cc)(DiscoveryEvent *)){
   soap_end(&serv);     // delete managed data and temporaries 
   soap_done(&serv);
 
+  free(msg->id);
+  free(msg);
   return;
 }
 
