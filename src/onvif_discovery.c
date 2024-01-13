@@ -99,16 +99,22 @@ void wsdd_event_ProbeMatches(struct soap *soap, unsigned int InstanceId, const c
     if(match.Scopes && match.Scopes->__item){
       char *tmp;
       char *p = strtok_r ((char *)match.Scopes->__item, "\n", &match.Scopes->__item);
+      char *q = NULL;
       while (p != NULL){
         tmp=trimwhitespace(p);
         if(tmp[0] == '\0'){
           p = strtok_r(match.Scopes->__item,"\n", &match.Scopes->__item);
           continue;
         }
-
-        ProbMatch__insert_scope(ret_match,tmp);
-        p = strtok_r (match.Scopes->__item, "\n", &match.Scopes->__item);
+        
+        q = strtok_r(tmp," ", &tmp);
+        while(q != NULL){
+          ProbMatch__insert_scope(ret_match,q);
+          q = strtok_r (tmp, " ", &tmp);
+        }
+        p = strtok_r ((char *)match.Scopes->__item, "\n", &match.Scopes->__item);
       }
+
     }
 
     ProbMatches__insert_match(matches,ret_match);
