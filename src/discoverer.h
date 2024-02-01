@@ -15,11 +15,10 @@
 
 struct UdpDiscoverer {
     void (*found_callback)(DiscoveryEvent *);
-    void (*done_callback)(DiscoveryEvent *);
 };
 
 __attribute__ ((visibility("default"))) 
-extern struct UdpDiscoverer UdpDiscoverer__create(void * func, void * done_func); 
+extern struct UdpDiscoverer UdpDiscoverer__create(void (*found_callback)(DiscoveryEvent *)); 
 __attribute__ ((visibility("default"))) 
 extern void UdpDiscoverer__destroy(struct UdpDiscoverer* self); 
 __attribute__ ((visibility("default"))) 

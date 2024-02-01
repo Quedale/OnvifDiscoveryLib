@@ -143,6 +143,19 @@ soap_wsdd_mode wsdd_event_Resolve(struct soap *soap, const char *MessageID, cons
 void wsdd_event_ResolveMatches(struct soap *soap, unsigned int InstanceId, const char * SequenceId, unsigned int MessageNumber, const char *MessageID, const char *RelatesTo, struct wsdd__ResolveMatchType *match)
 { C_WARN("wsdd_event_ResolveMatches"); }
 
+void priv_sendProbe(struct soap * serv, char * type, char * id){
+  int ret = soap_wsdd_Probe(serv,SOAP_WSDD_ADHOC,SOAP_WSDD_TO_TS,"soap.udp://239.255.255.250:3702", id,
+    NULL, //ReplyTo
+    type, //Type
+    NULL, // Scopes
+    NULL); // MatchBy
+
+  if (ret != SOAP_OK){
+    soap_print_fault(serv, stderr);
+    C_ERROR("error sending prob...%i",ret);
+  }
+}
+
 void sendProbe(void * data, int timeout, int (*cc)(DiscoveryEvent *)){
   
   char *debug_flag = NULL;
@@ -154,6 +167,7 @@ void sendProbe(void * data, int timeout, int (*cc)(DiscoveryEvent *)){
 
   memset((void*)&serv, 0, sizeof(serv));
   soap_init1(&serv,SOAP_IO_UDP);
+  soap_register_plugin(&serv, soap_wsa);
 
   if(debug_flag){
     soap_register_plugin(&serv, logging);
@@ -180,53 +194,21 @@ void sendProbe(void * data, int timeout, int (*cc)(DiscoveryEvent *)){
   serv.user = msg;
 
   //Broadcast prob request
-  int ret;
   
-  //TODO allow sending NULL type probe by settings
-  // ret = soap_wsdd_Probe(serv,SOAP_WSDD_ADHOC,SOAP_WSDD_TO_TS,"soap.udp://239.255.255.250:3702", msg->id,
-  //   NULL, //ReplyTo
-  //   NULL, //Type
-  //   NULL, // Scopes
-  //   NULL); // MatchBy
-    
-  // if (ret != SOAP_OK){
-  //   soap_print_fault(serv, stderr);
-  //   C_ERROR("error sending prob...%i\n",ret);
-  // }
+  //TODO allow choosing probe types by config
+  //TODOD  Filter out stuff like printers
+  // C_TRACE("Sending Empty probe...");
+  // priv_sendProbe(&serv, NULL, msg->id);
 
-  C_TRACE("Sending Device probe...");
-  ret = soap_wsdd_Probe(&serv,SOAP_WSDD_ADHOC,SOAP_WSDD_TO_TS,"soap.udp://239.255.255.250:3702", msg->id,
-    NULL, //ReplyTo
-    "\"http://www.onvif.org/ver10/device/wsdl\":Device", //Type
-    NULL, // Scopes
-    NULL); // MatchBy
-
-  if (ret != SOAP_OK){
-    soap_print_fault(&serv, stderr);
-    C_ERROR("error sending prob...%i",ret);
-  }
+  // C_TRACE("Sending Device probe...");
+  // priv_sendProbe(&serv, "\"http://www.onvif.org/ver10/device/wsdl\":Device", msg->id);
 
   C_TRACE("Sending NVT probe...");
-  ret = soap_wsdd_Probe(&serv,SOAP_WSDD_ADHOC,SOAP_WSDD_TO_TS,"soap.udp://239.255.255.250:3702", msg->id,
-    NULL, //ReplyTo
-    "\"http://www.onvif.org/ver10/network/wsdl\":NetworkVideoTransmitter", //Type
-    NULL, // Scopes
-    NULL); // MatchBy
-  if (ret != SOAP_OK){
-    soap_print_fault(&serv, stderr);
-    C_ERROR("error sending prob...%i",ret);
-  }
-  
-  C_TRACE("Sending NVD probe...");
-  ret = soap_wsdd_Probe(&serv,SOAP_WSDD_ADHOC,SOAP_WSDD_TO_TS,"soap.udp://239.255.255.250:3702", msg->id,
-    NULL, //ReplyTo
-    "\"http://www.onvif.org/ver10/network/wsdl\":NetworkVideoDisplay", //Type
-    NULL, // Scopes
-    NULL); // MatchBy
-  if (ret != SOAP_OK){
-    soap_print_fault(&serv, stderr);
-    C_ERROR("error sending prob...%i",ret);
-  }
+  priv_sendProbe(&serv, "\"http://www.onvif.org/ver10/network/wsdl\":NetworkVideoTransmitter", msg->id);
+
+  // C_TRACE("Sending NVT probe...");
+  // priv_sendProbe(&serv, "\"http://www.onvif.org/ver10/network/wsdl\":NetworkVideoDisplay", msg->id);
+
   
   //Listen for responses
   if (soap_wsdd_listen(&serv, timeout) != SOAP_OK){
