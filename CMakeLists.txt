@@ -54,7 +54,7 @@ if(NOT WIN32)
   target_compile_options(onvifdisco PRIVATE "SHELL: -fvisibility=hidden")
 endif()
 
-target_compile_options(onvifdisco PRIVATE "SHELL: -c -Wall -DBUILD_SHARD")
+target_compile_options(onvifdisco PRIVATE "SHELL: -c -Wall -Wextra -Wpedantic -Wno-unused-parameter -DBUILD_SHARD")
 
 add_subdirectory(example)
 
