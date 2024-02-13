@@ -59,7 +59,7 @@ char *trimwhitespace(char *str)
 
 void wsdd_event_ProbeMatches(struct soap *soap, unsigned int InstanceId, const char *SequenceId, unsigned int MessageNumber, const char *MessageID, const char *RelatesTo, struct wsdd__ProbeMatchesType *ProbeMatches)
 {
-  C_TRACE("ProbeMatches found...");
+  C_DEBUG("ProbeMatches found...");
 
   ProbMatches * matches = ProbMatches__create();
   struct MessageEntry * entry = (struct MessageEntry *) soap->user;
@@ -203,7 +203,7 @@ void sendProbe(void * data, int timeout, int (*cc)(DiscoveryEvent *)){
   // C_TRACE("Sending Device probe...");
   // priv_sendProbe(&serv, "\"http://www.onvif.org/ver10/device/wsdl\":Device", msg->id);
 
-  C_TRACE("Sending NVT probe...");
+  C_DEBUG("Sending NVT probe...");
   priv_sendProbe(&serv, "\"http://www.onvif.org/ver10/network/wsdl\":NetworkVideoTransmitter", msg->id);
 
   // C_TRACE("Sending NVT probe...");
